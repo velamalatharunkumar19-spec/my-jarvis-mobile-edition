@@ -156,76 +156,52 @@ async function askGemini(prompt) {
 }
 
 
-// ===== 6. SPEECH RECOGNITION =====
-const SR =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
+// ===== 6. SPEECH RECOGNITION (MIC INPUT) =====
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 let rec = null;
 
-if (SR) {
+if (SpeechRec) {
+  rec = new SpeechRec();
+  rec.lang = 'en-US';
+  rec.interimResults = false;
+  rec.continuous = false;
 
-    rec = new SR();
+  rec.onresult = (e) => {
+    const t = e.results[0][0].transcript;
+    add("YOU: " + t, "user");
+    askGemini(t);
+  };
 
-    rec.lang = "en-US";
-    rec.continuous = false;
-    rec.interimResults = false;
+  rec.onerror = (e) => {
+    add("J.A.R.V.I.S: Microphone error - " + e.error, "ai");
+    console.log("Mic error:", e.error);
+    if (micBtn) micBtn.innerText = "🎤";
+  };
 
-    rec.onresult = (e) => {
+  rec.onend = () => {
+    if (micBtn) micBtn.innerText = "🎤";
+  };
 
-        const t = e.results[0][0].transcript;
-
-        add("YOU: " + t, "user");
-
-        askGemini(t);
+  if (micBtn) {
+    micBtn.onclick = () => {
+      try {
+        rec.abort();
+        rec.start();
+        micBtn.innerText = "LISTENING...";
+      } catch (err) {
+        console.log(err);
+      }
     };
-
-    rec.onerror = (e) => {
-        add(
-            "J.A.R.V.I.S: Microphone error - " + e.error,
-            "ai"
-        );
-    };
-
-    rec.onend = () => {
-
-        if (micBtn) {
-            micBtn.innerText = "🎤";
-        }
-    };
-
-    if (micBtn) {
-
-        micBtn.onclick = () => {
-
-            try {
-
-                rec.start();
-
-                micBtn.innerText = "LISTENING...";
-
-            } catch (err) {
-
-                // Prevent "recognition has already started" error
-                console.log(err);
-            }
-        };
-    }
-
+  }
 } else {
-
-    if (micBtn) {
-
-        micBtn.onclick = () => {
-            add(
-                "J.A.R.V.I.S: Speech Recognition is not supported in this browser.",
-                "ai"
-            );
-        };
-    }
+  if (micBtn) {
+    micBtn.onclick = () => {
+      add("J.A.R.V.I.S: Speech Recognition is not supported in this browser.", "ai");
+    };
+  }
 }
-
-
+           
 // ===== 7. TEXT-TO-SPEECH =====
 let voices = [];
 
